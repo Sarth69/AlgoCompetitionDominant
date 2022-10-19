@@ -14,36 +14,10 @@ def dominant(g):
     """
     uncoveredNodes = [n for n in range(g.order())]
     dominant = []
-    nodesThisNodeWouldCover = [1 for n in g.nodes]
-    nodeThatCoversMax = 0
-    nodesCoveredMax = 1
-    # First, we compute how many nodes each node would cover if it was added to the dominant
-    for e in g.edges:
-        nodesThisNodeWouldCover[int(e[0])] += 1
-        if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[0])]):
-            nodesCoveredMax = nodesThisNodeWouldCover[int(e[0])]
-            nodeThatCoversMax = int(e[0])
-        nodesThisNodeWouldCover[int(e[1])] += 1
-        if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[1])]):
-            nodesCoveredMax = nodesThisNodeWouldCover[int(e[1])]
-            nodeThatCoversMax = int(e[1])
-    # Then, we add the node that covers the most new nodes
     while (len(uncoveredNodes) > 0):
-        dominant += [nodeThatCoversMax]
-        uncoveredNodes.remove(nodeThatCoversMax)
-        if (len(uncoveredNodes) == 0):
-            break
-        newDomNode = nodeThatCoversMax
-        # We compute the new max by updating the values in nodesThisNodeWouldCover
-        # At the same time, we remove the new covered nodes
         nodeThatCoversMax = uncoveredNodes[0]
         nodesCoveredMax = 1
         nodesThisNodeWouldCover = [1 for n in g.nodes]
-        for e in g.edges:
-            if (int(e[0]) == newDomNode and int(e[1]) in uncoveredNodes):
-                uncoveredNodes.remove(int(e[1]))
-            elif (int(e[1]) == newDomNode and int(e[0]) in uncoveredNodes):
-                uncoveredNodes.remove(int(e[0]))
         for e in g.edges:
             if (int(e[0]) in uncoveredNodes and int(e[1]) in uncoveredNodes):
                 nodesThisNodeWouldCover[int(e[0])] += 1
@@ -54,6 +28,13 @@ def dominant(g):
                 if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[1])]):
                     nodesCoveredMax = nodesThisNodeWouldCover[int(e[1])]
                     nodeThatCoversMax = int(e[1])
+        dominant += [nodeThatCoversMax]
+        uncoveredNodes.remove(nodeThatCoversMax)
+        for e in g.edges:
+            if (int(e[0]) == nodeThatCoversMax and int(e[1]) in uncoveredNodes):
+                uncoveredNodes.remove(int(e[1]))
+            elif (int(e[1]) == nodeThatCoversMax and int(e[0]) in uncoveredNodes):
+                uncoveredNodes.remove(int(e[0]))
     return dominant
 
 
