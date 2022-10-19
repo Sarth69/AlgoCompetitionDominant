@@ -1,46 +1,89 @@
-import sys, os, time
+import sys
+import os
+import time
 import networkx as nx
 
 
 def dominant(g):
     """
-        A Faire:         
+        A Faire:
         - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
         - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
 
         :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
-
     """
-    return g.nodes  # pas terrible :) mais c'est un dominant
-
+    uncoveredNodes = [n for n in range(g.order())]
+    dominant = []
+    nodesThisNodeWouldCover = [1 for n in g.nodes]
+    nodeThatCoversMax = 0
+    nodesCoveredMax = 1
+    # First, we compute how many nodes each node would cover if it was added to the dominant
+    for e in g.edges:
+        nodesThisNodeWouldCover[int(e[0])] += 1
+        if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[0])]):
+            nodesCoveredMax = nodesThisNodeWouldCover[int(e[0])]
+            nodeThatCoversMax = int(e[0])
+        nodesThisNodeWouldCover[int(e[1])] += 1
+        if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[1])]):
+            nodesCoveredMax = nodesThisNodeWouldCover[int(e[1])]
+            nodeThatCoversMax = int(e[1])
+    # Then, we add the node that covers the most new nodes
+    while (len(uncoveredNodes) > 0):
+        dominant += [nodeThatCoversMax]
+        uncoveredNodes.remove(nodeThatCoversMax)
+        if (len(uncoveredNodes) == 0):
+            break
+        newDomNode = nodeThatCoversMax
+        # We compute the new max by updating the values in nodesThisNodeWouldCover
+        # At the same time, we remove the new covered nodes
+        nodeThatCoversMax = uncoveredNodes[0]
+        nodesCoveredMax = 1
+        nodesThisNodeWouldCover = [1 for n in g.nodes]
+        for e in g.edges:
+            if (int(e[0]) == newDomNode and int(e[1]) in uncoveredNodes):
+                uncoveredNodes.remove(int(e[1]))
+            elif (int(e[1]) == newDomNode and int(e[0]) in uncoveredNodes):
+                uncoveredNodes.remove(int(e[0]))
+        for e in g.edges:
+            if (int(e[0]) in uncoveredNodes and int(e[1]) in uncoveredNodes):
+                nodesThisNodeWouldCover[int(e[0])] += 1
+                if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[0])]):
+                    nodesCoveredMax = nodesThisNodeWouldCover[int(e[0])]
+                    nodeThatCoversMax = int(e[0])
+                nodesThisNodeWouldCover[int(e[1])] += 1
+                if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[1])]):
+                    nodesCoveredMax = nodesThisNodeWouldCover[int(e[1])]
+                    nodeThatCoversMax = int(e[1])
+    return dominant
 
 
 #########################################
 #### Ne pas modifier le code suivant ####
 #########################################
-if __name__=="__main__":
+if __name__ == "__main__":
     input_dir = os.path.abspath(sys.argv[1])
     output_dir = os.path.abspath(sys.argv[2])
-    
+
     # un repertoire des graphes en entree doit être passé en parametre 1
     if not os.path.isdir(input_dir):
-	    print(input_dir, "doesn't exist")
-	    exit()
+        print(input_dir, "doesn't exist")
+        exit()
 
     # un repertoire pour enregistrer les dominants doit être passé en parametre 2
     if not os.path.isdir(output_dir):
-	    print(input_dir, "doesn't exist")
-	    exit()       
-	
+        print(input_dir, "doesn't exist")
+        exit()
+
     # fichier des reponses depose dans le output_dir et annote par date/heure
-    output_filename = 'answers_{}.txt'.format(time.strftime("%d%b%Y_%H%M%S", time.localtime()))             
+    output_filename = 'answers_{}.txt'.format(
+        time.strftime("%d%b%Y_%H%M%S", time.localtime()))
     output_file = open(os.path.join(output_dir, output_filename), 'w')
 
     for graph_filename in sorted(os.listdir(input_dir)):
-        #print(graph_filename)
+        # print(graph_filename)
         # importer le graphe
         g = nx.read_adjlist(os.path.join(input_dir, graph_filename))
-        
+
         # calcul du dominant
         D = sorted(dominant(g), key=lambda x: int(x))
 
@@ -49,5 +92,5 @@ if __name__=="__main__":
         for node in D:
             output_file.write(' {}'.format(node))
         output_file.write('\n')
-        
+
     output_file.close()
