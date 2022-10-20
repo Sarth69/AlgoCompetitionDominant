@@ -17,6 +17,14 @@ def getDominantNode(g):
     return nodeThatCoversMax
 
 
+def getBestDominantNodesOrdered(g):
+    return sorted(
+        [int(node) for node in g.nodes],
+        key=lambda x: len(list(g.neighbors(str(x)))),
+        reverse=True
+    )
+
+
 def getNewDominantNode(g, uncoveredNodes):
     nodeThatCoversMax = uncoveredNodes[0]
     nodesCoveredMax = 1
@@ -43,23 +51,14 @@ def getNewDominantNodeInPossibleNodes(g, uncoveredNodes, newPossibleNodes):
     return nodeThatCoversMax
 
 
-def dominant(g):
-    """
-        A Faire:
-        - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
-        - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
-
-        :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
-    """
-    ts = time.time()
-    graphSize = g.order()
+def getConnexDominant(g, newDom):
+    # The first node is newDom
+    # Then, we look in its neighbors for a new node to add
+    # Each time, we choose the one that adds the most nodes in the covered set
     dominant = []
+    graphSize = g.order()
     uncoveredNodes = [n for n in range(graphSize)]
     possibleNewDoms = []
-    # We choose a first node
-    # Then, we look in its neighbors for a new node to add
-    # Each time, we choose the one that add the most nodes in the covered set
-    newDom = getDominantNode(g)
     uncoveredNodes.remove(newDom)
     dominant.append(newDom)
     for node in g.neighbors(str(newDom)):
@@ -75,8 +74,11 @@ def dominant(g):
                 uncoveredNodes.remove(int(node))
             if (int(node) not in dominant and int(node) not in possibleNewDoms):
                 possibleNewDoms.append(int(node))
+    return dominant
 
-    # We elagate the dominant set
+
+def reduceDom(g, dominant):
+    graphSize = g.order()
     reducedDominant = [False for n in range(graphSize)]
     for i in dominant:
         reducedDominant[i] = True
@@ -101,26 +103,56 @@ def dominant(g):
         if numberOfCovered < graphSize:
             # We can't remove this dominant, so we put it back
             reducedDominant[i] = True
-    dominant = [n for n in range(graphSize) if reducedDominant[n]]
+    return [n for n in range(graphSize) if reducedDominant[n]]
 
-    # We get a second dominant set
-    uncoveredNodes = [n for n in range(graphSize)]
-    dominant2 = []
-    while (len(uncoveredNodes) > 0):
-        # To get it, we add the node that adds the most covered nodes
-        nodeThatCoversMax = getNewDominantNode(g, uncoveredNodes)
-        dominant2 += [nodeThatCoversMax]
-        uncoveredNodes.remove(nodeThatCoversMax)
-        for e in g.edges:
-            if (int(e[0]) == nodeThatCoversMax and int(e[1]) in uncoveredNodes):
-                uncoveredNodes.remove(int(e[1]))
-            elif (int(e[1]) == nodeThatCoversMax and int(e[0]) in uncoveredNodes):
-                uncoveredNodes.remove(int(e[0]))
 
-    if (len(dominant) > len(dominant2)):
-        dominant = dominant2
+def dominant(g):
+    """
+        A Faire:
+        - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
+        - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
 
-    print("Execution time : " + str(time.time() - ts))
+        :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
+    """
+    ts = time.time()
+    # We choose the best first node
+    firstDoms = getBestDominantNodesOrdered(g)
+    newDom = firstDoms[0]
+    dominant = getConnexDominant(g, newDom)
+
+    # We elagate the dominant set
+    dominant = reduceDom(g, dominant)
+
+    # # We get a second dominant set
+    # uncoveredNodes = [n for n in range(graphSize)]
+    # dominant2 = []
+    # while (len(uncoveredNodes) > 0):
+    #     # To get it, we add the node that adds the most covered nodes
+    #     nodeThatCoversMax = getNewDominantNode(g, uncoveredNodes)
+    #     dominant2 += [nodeThatCoversMax]
+    #     uncoveredNodes.remove(nodeThatCoversMax)
+    #     for e in g.edges:
+    #         if (int(e[0]) == nodeThatCoversMax and int(e[1]) in uncoveredNodes):
+    #             uncoveredNodes.remove(int(e[1]))
+    #         elif (int(e[1]) == nodeThatCoversMax and int(e[0]) in uncoveredNodes):
+    #             uncoveredNodes.remove(int(e[0]))
+
+    # if (len(dominant) > len(dominant2)):
+    #     dominant = dominant2
+
+    computeDuration = time.time()-ts
+    print("Execution time : " + str(computeDuration))
+    if (2-computeDuration > computeDuration):
+        otherDoms = []
+        for iteration in range(min(int((2-computeDuration)/computeDuration), len(firstDoms)-1)):
+            newDom = firstDoms[iteration + 1]
+
+            otherDoms.append(getConnexDominant(g, newDom))
+            # We elagate the dominant set
+            otherDoms[iteration] = reduceDom(g, otherDoms[iteration])
+            if(len(otherDoms[iteration]) < len(dominant)):
+                dominant = otherDoms[iteration]
+    print("Total exec time : ", str(time.time()-ts))
 
     # nx.draw_spring(g, with_labels=True, node_color=["blue" if int(
     #     n) not in dominant else "red" for n in g.nodes()], node_size=100, width=0.2)
