@@ -142,9 +142,12 @@ def dominant(g):
 
     computeDuration = time.time()-ts
     print("Execution time : " + str(computeDuration))
+    numberOfIterations = 1
     if (2-computeDuration > computeDuration):
         otherDoms = []
-        for iteration in range(min(int((2-computeDuration)/computeDuration), len(firstDoms)-1)):
+        numberOfIterations = min(
+            int((2-computeDuration)/computeDuration), len(firstDoms)-1)+1
+        for iteration in range(numberOfIterations-1):
             newDom = firstDoms[iteration + 1]
 
             otherDoms.append(getConnexDominant(g, newDom))
@@ -153,6 +156,7 @@ def dominant(g):
             if(len(otherDoms[iteration]) < len(dominant)):
                 dominant = otherDoms[iteration]
     print("Total exec time : ", str(time.time()-ts))
+    print("Number of iterations : ", str(numberOfIterations))
 
     # nx.draw_spring(g, with_labels=True, node_color=["blue" if int(
     #     n) not in dominant else "red" for n in g.nodes()], node_size=100, width=0.2)
