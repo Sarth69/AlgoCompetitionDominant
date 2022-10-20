@@ -2,8 +2,9 @@ import sys
 import os
 import time
 import networkx as nx
-# import matplotlib.pyplot as plt
-# k = 0
+import matplotlib.pyplot as plt
+import random
+k = 0
 
 
 def getDominantNode(g):
@@ -37,13 +38,16 @@ def getNewDominantNode(g, uncoveredNodes):
     return nodeThatCoversMax
 
 
-def getNewDominantNodeInPossibleNodes(g, uncoveredNodes, newPossibleNodes):
+def getNewDominantNodeInPossibleNodes(g, uncoveredNodes, newPossibleNodes, dense):
     nodeThatCoversMax = newPossibleNodes[0]
     nodesCoveredMax = 0
     for node in newPossibleNodes:
         numberOfNeighborsUncovered = len(
             [n for n in g.neighbors(str(node)) if int(n) in uncoveredNodes])
-        if (nodesCoveredMax < numberOfNeighborsUncovered):
+        if (not dense and nodesCoveredMax <= numberOfNeighborsUncovered):
+            nodesCoveredMax = numberOfNeighborsUncovered
+            nodeThatCoversMax = int(node)
+        if (dense and nodesCoveredMax < numberOfNeighborsUncovered):
             nodesCoveredMax = numberOfNeighborsUncovered
             nodeThatCoversMax = int(node)
     if(nodesCoveredMax == 0):
@@ -51,7 +55,7 @@ def getNewDominantNodeInPossibleNodes(g, uncoveredNodes, newPossibleNodes):
     return nodeThatCoversMax
 
 
-def getConnexDominant(g, newDom):
+def getConnexDominant(g, newDom, dense):
     # The first node is newDom
     # Then, we look in its neighbors for a new node to add
     # Each time, we choose the one that adds the most nodes in the covered set
@@ -66,7 +70,7 @@ def getConnexDominant(g, newDom):
         possibleNewDoms.append(int(node))
     while(len(uncoveredNodes) > 0):
         newDom = getNewDominantNodeInPossibleNodes(
-            g, uncoveredNodes, possibleNewDoms)
+            g, uncoveredNodes, possibleNewDoms, dense)
         dominant.append(newDom)
         possibleNewDoms.remove(newDom)
         for node in g.neighbors(str(newDom)):
@@ -106,6 +110,11 @@ def reduceDom(g, dominant):
     return [n for n in range(graphSize) if reducedDominant[n]]
 
 
+def randomReduceDom(g, dominant):
+    random.shuffle(dominant)
+    return reduceDom(g, dominant)
+
+
 def dominant(g):
     """
         A Faire:
@@ -118,52 +127,55 @@ def dominant(g):
     # We choose the best first node
     firstDoms = getBestDominantNodesOrdered(g)
     newDom = firstDoms[0]
-    dominant = getConnexDominant(g, newDom)
+    dominant = getConnexDominant(g, newDom, True)
+    dominantNotDense = getConnexDominant(g, newDom, False)
 
     # We elagate the dominant set
+    # We try 5 random orders in which we'll try to elagate the tree,
     dominant = reduceDom(g, dominant)
+    dominantNotDense = reduceDom(g, dominantNotDense)
+    if(len(dominantNotDense) < len(dominant)):
+        dominant = dominantNotDense
 
-    # # We get a second dominant set
-    # uncoveredNodes = [n for n in range(graphSize)]
-    # dominant2 = []
-    # while (len(uncoveredNodes) > 0):
-    #     # To get it, we add the node that adds the most covered nodes
-    #     nodeThatCoversMax = getNewDominantNode(g, uncoveredNodes)
-    #     dominant2 += [nodeThatCoversMax]
-    #     uncoveredNodes.remove(nodeThatCoversMax)
-    #     for e in g.edges:
-    #         if (int(e[0]) == nodeThatCoversMax and int(e[1]) in uncoveredNodes):
-    #             uncoveredNodes.remove(int(e[1]))
-    #         elif (int(e[1]) == nodeThatCoversMax and int(e[0]) in uncoveredNodes):
-    #             uncoveredNodes.remove(int(e[0]))
-
-    # if (len(dominant) > len(dominant2)):
-    #     dominant = dominant2
+    # for iteration in range(4):
+    #     dominant2 = randomReduceDom(g, dominant)
+    #     if len(dominant2) < len(dominant):
+    #         print("random successful")
+    #         dominant = dominant2
 
     computeDuration = time.time()-ts
     print("Execution time : " + str(computeDuration))
     numberOfIterations = 1
     if (2-computeDuration > computeDuration):
         otherDoms = []
+        otherDoms2 = []
         numberOfIterations = min(
             int((2-computeDuration)/computeDuration), len(firstDoms)-1)+1
         for iteration in range(numberOfIterations-1):
             newDom = firstDoms[iteration + 1]
-
-            otherDoms.append(getConnexDominant(g, newDom))
+            otherDoms2.append(getConnexDominant(g, newDom, True))
+            otherDoms.append(getConnexDominant(g, newDom, False))
             # We elagate the dominant set
             otherDoms[iteration] = reduceDom(g, otherDoms[iteration])
+            otherDoms2[iteration] = reduceDom(g, otherDoms2[iteration])
+            # for _ in range(4):
+            #     dominant2 = randomReduceDom(g, otherDoms[iteration])
+            #     if len(dominant2) < len(otherDoms[iteration]):
+            #         print("random successful")
+            #         otherDoms[iteration] = dominant2
             if(len(otherDoms[iteration]) < len(dominant)):
                 dominant = otherDoms[iteration]
+            if(len(otherDoms2[iteration]) < len(dominant)):
+                dominant = otherDoms2[iteration]
     print("Total exec time : ", str(time.time()-ts))
     print("Number of iterations : ", str(numberOfIterations))
 
-    # nx.draw_spring(g, with_labels=True, node_color=["blue" if int(
-    #     n) not in dominant else "red" for n in g.nodes()], node_size=100, width=0.2)
-    # global k
-    # plt.savefig("graph" + str(k))
-    # k += 1
-    # plt.clf()
+    nx.draw_spring(g, with_labels=True, node_color=["blue" if int(
+        n) not in dominant else "red" for n in g.nodes()], node_size=100, width=0.2)
+    global k
+    plt.savefig("graph" + str(k))
+    k += 1
+    plt.clf()
 
     return dominant
 
