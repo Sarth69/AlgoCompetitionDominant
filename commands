@@ -1,3 +1,5 @@
 python dominant.py "D:\Centrale\3A\Mention ASI\Algo+\AlgoCompetitionDominant\public_dataset" "D:\Centrale\3A\Mention ASI\Algo+\AlgoCompetitionDominant\answers"
 
 python evaluateAnswer.py answers/answers_19Oct2022_213622.txt
+
+https://codalab.lisn.upsaclay.fr/competitions/8000?secret_key=a0371b83-411b-40b1-af63-5a6966511b12 : lien concours
