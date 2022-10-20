@@ -2,22 +2,30 @@ import sys
 import os
 import time
 import networkx as nx
+# import matplotlib.pyplot as plt
+# k = 0
+
+
+def getDominantNode(g):
+    nodeThatCoversMax = 0
+    nodesCoveredMax = 0
+    for node in g.nodes():
+        numberOfNeighbors = len(list(g.neighbors(node)))
+        if numberOfNeighbors > nodesCoveredMax:
+            nodesCoveredMax = numberOfNeighbors
+            nodeThatCoversMax = int(node)
+    return nodeThatCoversMax
 
 
 def getNewDominantNode(g, uncoveredNodes):
     nodeThatCoversMax = uncoveredNodes[0]
-    nodesCoveredMax = 0
-    nodesThisNodeWouldCover = [1 for n in g.nodes]
-    for e in g.edges:
-        if (int(e[0]) in uncoveredNodes and int(e[1]) in uncoveredNodes):
-            nodesThisNodeWouldCover[int(e[0])] += 1
-            if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[0])]):
-                nodesCoveredMax = nodesThisNodeWouldCover[int(e[0])]
-                nodeThatCoversMax = int(e[0])
-            nodesThisNodeWouldCover[int(e[1])] += 1
-            if (nodesCoveredMax < nodesThisNodeWouldCover[int(e[1])]):
-                nodesCoveredMax = nodesThisNodeWouldCover[int(e[1])]
-                nodeThatCoversMax = int(e[1])
+    nodesCoveredMax = 1
+    for node in uncoveredNodes:
+        numberOfNeighborsUncovered = len(
+            [n for n in g.neighbors(str(node)) if int(n) in uncoveredNodes])
+        if (nodesCoveredMax < numberOfNeighborsUncovered):
+            nodesCoveredMax = numberOfNeighborsUncovered
+            nodeThatCoversMax = int(node)
     return nodeThatCoversMax
 
 
@@ -26,10 +34,12 @@ def getNewDominantNodeInPossibleNodes(g, uncoveredNodes, newPossibleNodes):
     nodesCoveredMax = 0
     for node in newPossibleNodes:
         numberOfNeighborsUncovered = len(
-            [n for n in g.neighbors(str(node)) if n in uncoveredNodes])
+            [n for n in g.neighbors(str(node)) if int(n) in uncoveredNodes])
         if (nodesCoveredMax < numberOfNeighborsUncovered):
             nodesCoveredMax = numberOfNeighborsUncovered
             nodeThatCoversMax = int(node)
+    if(nodesCoveredMax == 0):
+        print("Add a node that covers no one new")
     return nodeThatCoversMax
 
 
@@ -49,7 +59,7 @@ def dominant(g):
     # We choose a first node
     # Then, we look in its neighbors for a new node to add
     # Each time, we choose the one that add the most nodes in the covered set
-    newDom = getNewDominantNode(g, uncoveredNodes)
+    newDom = getDominantNode(g)
     uncoveredNodes.remove(newDom)
     dominant.append(newDom)
     for node in g.neighbors(str(newDom)):
@@ -70,7 +80,6 @@ def dominant(g):
     reducedDominant = [False for n in range(graphSize)]
     for i in dominant:
         reducedDominant[i] = True
-    i = 0
     for i in dominant:
         # We try to remove the dominant i
         reducedDominant[i] = False
@@ -108,78 +117,18 @@ def dominant(g):
             elif (int(e[1]) == nodeThatCoversMax and int(e[0]) in uncoveredNodes):
                 uncoveredNodes.remove(int(e[0]))
 
-    # # We compare it to a second dominant set
-    # # For this one, the criteria will be the difference between the number of neighbors and the mean number of neighbors of the neighbors
-    # uncoveredNodes = [n for n in range(graphSize)]
-    # dominant2 = []
-    # while (len(uncoveredNodes) > 0):
-    #     # To get it, we add the node that adds the most covered nodes
-    #     nodesThisNodeWouldCover = [[n] for n in g.nodes]
-    #     # We compute the number of nodes each new dom would add
-    #     for e in g.edges:
-    #         if (int(e[0]) in uncoveredNodes and int(e[1]) in uncoveredNodes):
-    #             nodesThisNodeWouldCover[int(e[0])] += [int(e[1])]
-    #             nodesThisNodeWouldCover[int(e[1])] += [int(e[0])]
-
-    #     # We get the node maximizing the score
-    #     maxScore = -graphSize ^ 2
-    #     nodeMaximizingScore = uncoveredNodes[0]
-    #     for node in uncoveredNodes:
-    #         score = len(nodesThisNodeWouldCover[node])
-    #         # We reduce the score by the average of neighbors of the neighbors of the node
-    #         average = 0
-    #         for neighbor in nodesThisNodeWouldCover[node]:
-    #             average += len(nodesThisNodeWouldCover[int(neighbor)]) - 1
-    #         if (score > 0):
-    #             average /= score
-
-    #         # We update the max accordingly
-    #         if (score - average) > maxScore:
-    #             maxScore = score-average
-    #             nodeMaximizingScore = node
-
-    #     # We add the best node to the dominant
-    #     dominant2 += [nodeMaximizingScore]
-    #     uncoveredNodes.remove(nodeMaximizingScore)
-    #     for e in g.edges:
-    #         if (int(e[0]) == nodeMaximizingScore and int(e[1]) in uncoveredNodes):
-    #             uncoveredNodes.remove(int(e[1]))
-    #         elif (int(e[1]) == nodeMaximizingScore and int(e[0]) in uncoveredNodes):
-    #             uncoveredNodes.remove(int(e[0]))
-
-    # We choose the best dominant of the 2 computed
     if (len(dominant) > len(dominant2)):
         dominant = dominant2
 
-    # # We check if we can remove a node from the dominant set found
-    # reducedDominant = [False for n in range(graphSize)]
-    # for i in dominant:
-    #     reducedDominant[i] = True
-    # i = 0
-    # for i in dominant:
-    #     # We try to remove the dominant i
-    #     reducedDominant[i] = False
-    #     covered = [False for n in range(graphSize)]
-    #     numberOfCovered = 0
-    #     # The dominants are dominated
-    #     for node in range(graphSize):
-    #         if(reducedDominant[node]):
-    #             covered[node] = True
-    #             numberOfCovered += 1
-    #     # Their neighbors too
-    #     for e in g.edges:
-    #         if (reducedDominant[int(e[0])] and not covered[int(e[1])]):
-    #             covered[int(e[1])] = True
-    #             numberOfCovered += 1
-    #         elif (reducedDominant[int(e[1])] and not covered[int(e[0])]):
-    #             covered[int(e[0])] = True
-    #             numberOfCovered += 1
-    #     if numberOfCovered < graphSize:
-    #         # We can't remove this dominant, so we put it back
-    #         reducedDominant[i] = True
-    #     else:
-    #         print("removed a dom")
     print("Execution time : " + str(time.time() - ts))
+
+    # nx.draw_spring(g, with_labels=True, node_color=["blue" if int(
+    #     n) not in dominant else "red" for n in g.nodes()], node_size=100, width=0.2)
+    # global k
+    # plt.savefig("graph" + str(k))
+    # k += 1
+    # plt.clf()
+
     return dominant
 
 
